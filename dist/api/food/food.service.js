@@ -96,7 +96,7 @@ let FoodService = class FoodService {
         const { data: user } = await axios_1.default.get(`${constants_1.AUTH_SERVICE_URL}/pengguna/detail`, {
             headers: { Authorization: `Bearer ${token}` }
         });
-        return 4;
+        return user.id;
     }
 };
 __decorate([

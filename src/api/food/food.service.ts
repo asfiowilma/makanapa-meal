@@ -124,6 +124,6 @@ export class FoodService {
     const { data: user } = await axios.get<User>(`${AUTH_SERVICE_URL}/pengguna/detail`, {
       headers: { Authorization: `Bearer ${token}` }
     })
-    return 4
+    return user.id
   }
 }
