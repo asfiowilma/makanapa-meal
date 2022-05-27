@@ -1,7 +1,9 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common'
+import { CACHE_MANAGER, HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common'
+import { Cache } from 'cache-manager'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { FoodHistory } from './food.entity'
+import stringHash = require('string-hash')
 import {
   CATEGORY,
   Food,
@@ -16,6 +18,8 @@ import { AUTH_SERVICE_URL } from 'src/shared/constants'
 
 @Injectable()
 export class FoodService {
+  constructor(@Inject(CACHE_MANAGER) private readonly cache: Cache) {}
+
   @InjectRepository(FoodHistory)
   private historyRepository: Repository<FoodHistory>
 
@@ -29,15 +33,13 @@ export class FoodService {
           const {
             data: { meals }
           } = responses[i]
-          const { idMeal, strMealThumb, strMeal } = meals.pop()
+          const { idMeal, strMealThumb: name, strMeal: thumbnail } = meals.pop()
+          const meal = { idMeal, name, thumbnail, calories: this.getCalories(name) }
+          this.cache.set(idMeal, meal, { ttl: 0 })
+
           res[i] = {
             category: category[i],
-            food: {
-              idMeal: idMeal,
-              name: strMeal,
-              thumbnail: strMealThumb,
-              calories: Math.round(Math.random() * 300)
-            }
+            food: meal
           }
         }
       })
@@ -50,28 +52,17 @@ export class FoodService {
   }
 
   async getFoodById(id: number): Promise<Food> {
-    const { idMeal, strMealThumb, strMeal } = await this.grabMealById(id)
-    return {
-      idMeal: idMeal,
-      name: strMeal,
-      thumbnail: strMealThumb,
-      calories: Math.round(Math.random() * 300)
-    }
+    return await this.grabMealById(id)
   }
 
   async getFoodHistory(idUser: number): Promise<FoodHistoryResponse[]> {
     const histories = await this.historyRepository.find({ where: { idUser } })
     return Promise.all(
       histories.map(async (history) => {
-        const { idMeal, strMealThumb, strMeal } = await this.grabMealById(history.idMeal)
+        const meal = await this.grabMealById(history.idMeal)
         return {
           ...history,
-          food: {
-            idMeal: idMeal,
-            name: strMeal,
-            thumbnail: strMealThumb,
-            calories: Math.round(Math.random() * 300)
-          }
+          food: meal
         }
       })
     )
@@ -81,7 +72,7 @@ export class FoodService {
     history: FoodHistoryRequest,
     idUser: number
   ): Promise<FoodHistoryResponse> {
-    const { idMeal, strMealThumb, strMeal } = await this.grabMealById(history.idMeal)
+    const meal = await this.grabMealById(history.idMeal)
     const history_ = new FoodHistory()
     history_.idMeal = history.idMeal
     history_.serving = history.serving
@@ -90,12 +81,7 @@ export class FoodService {
 
     return {
       ...history_,
-      food: {
-        idMeal,
-        name: strMeal,
-        thumbnail: strMealThumb,
-        calories: Math.round(Math.random() * 300)
-      }
+      food: meal
     }
   }
 
@@ -112,12 +98,19 @@ export class FoodService {
     )
   }
 
-  async grabMealById(id: number): Promise<FoodResponse> {
-    const mealResponse = await axios.get<{ meals: FoodResponse[] }>(
-      `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${id}`
-    )
-    const { meals } = mealResponse.data
-    return meals.pop()
+  async grabMealById(id: number): Promise<Food> {
+    const cachedMeal = await this.cache.get(id)
+    if (!cachedMeal) {
+      const mealResponse = await axios.get<{ meals: FoodResponse[] }>(
+        `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${id}`
+      )
+      const { meals } = mealResponse.data
+      const { idMeal, strMealThumb: thumbnail, strMeal: name } = meals.pop()
+      const meal = { idMeal, thumbnail, name, calories: this.getCalories(name) }
+      await this.cache.set(id, meal, { ttl: 0 })
+      return meal
+    }
+    return cachedMeal
   }
 
   async verifyUser(token: string): Promise<number> {
@@ -125,5 +118,11 @@ export class FoodService {
       headers: { Authorization: `Bearer ${token}` }
     })
     return user.id
+  }
+
+  getCalories(name: string) {
+    const hash = stringHash(name)
+    const mod = (a, b) => ((a % b) + b) % b
+    return mod(hash, 300)
   }
 }

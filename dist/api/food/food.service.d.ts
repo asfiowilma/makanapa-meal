@@ -1,5 +1,8 @@
+import { Cache } from 'cache-manager';
 import { CATEGORY, Food, FoodByCategory, FoodHistoryRequest, FoodHistoryResponse, FoodResponse } from './food.dto';
 export declare class FoodService {
+    private readonly cache;
+    constructor(cache: Cache);
     private historyRepository;
     generateFood(filter?: CATEGORY): Promise<FoodByCategory[]>;
     getFoodById(id: number): Promise<Food>;
@@ -9,6 +12,7 @@ export declare class FoodService {
     grabRandomMeal(): Promise<import("axios").AxiosResponse<{
         meals: FoodResponse[];
     }, any>>;
-    grabMealById(id: number): Promise<FoodResponse>;
+    grabMealById(id: number): Promise<Food>;
     verifyUser(token: string): Promise<number>;
+    getCalories(name: string): number;
 }

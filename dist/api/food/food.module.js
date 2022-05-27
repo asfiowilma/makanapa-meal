@@ -9,6 +9,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.FoodModule = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
+const cache_module_1 = require("../../shared/cache/cache.module");
 const food_controller_1 = require("./food.controller");
 const food_entity_1 = require("./food.entity");
 const food_service_1 = require("./food.service");
@@ -16,7 +17,7 @@ let FoodModule = class FoodModule {
 };
 FoodModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([food_entity_1.FoodHistory])],
+        imports: [typeorm_1.TypeOrmModule.forFeature([food_entity_1.FoodHistory]), cache_module_1.CacheModule],
         controllers: [food_controller_1.FoodController],
         providers: [food_service_1.FoodService]
     })
