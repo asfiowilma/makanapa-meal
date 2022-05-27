@@ -35,7 +35,6 @@ export class FoodService {
           } = responses[i]
           const { idMeal, strMealThumb: name, strMeal: thumbnail } = meals.pop()
           const meal = { idMeal, name, thumbnail, calories: this.getCalories(name) }
-          this.cache.set(idMeal, meal, { ttl: 0 })
 
           res[i] = {
             category: category[i],
