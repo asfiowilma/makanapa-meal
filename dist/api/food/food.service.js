@@ -33,7 +33,7 @@ let FoodService = class FoodService {
         await axios_1.default.all([this.grabRandomMeal(), this.grabRandomMeal(), this.grabRandomMeal()]).then(axios_1.default.spread((...responses) => {
             for (let i = 0; i < responses.length; i++) {
                 const { data: { meals } } = responses[i];
-                const { idMeal, strMealThumb: name, strMeal: thumbnail } = meals.pop();
+                const { idMeal, strMealThumb: thumbnail, strMeal: name } = meals.pop();
                 const meal = { idMeal, name, thumbnail, calories: this.getCalories(name) };
                 res[i] = {
                     category: category[i],

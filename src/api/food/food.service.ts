@@ -33,7 +33,7 @@ export class FoodService {
           const {
             data: { meals }
           } = responses[i]
-          const { idMeal, strMealThumb: name, strMeal: thumbnail } = meals.pop()
+          const { idMeal, strMealThumb: thumbnail, strMeal: name } = meals.pop()
           const meal = { idMeal, name, thumbnail, calories: this.getCalories(name) }
 
           res[i] = {
